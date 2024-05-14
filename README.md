@@ -1,4 +1,4 @@
-# PinGOu
+# pinGOu
 
 Ferramenta em Go para enviar pings para um host específico N vezes e salvar num txt.
 
