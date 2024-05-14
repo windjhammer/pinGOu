@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func pingHost(host string, count int) {
+func pingHost(host string, count int) error {
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
@@ -19,22 +19,18 @@ func pingHost(host string, count int) {
 	case "linux":
 		cmd = exec.Command("ping", "-c", strconv.Itoa(count), host)
 	default:
-		fmt.Println("SO não suportado")
-		return
+		return fmt.Errorf("sistema operacional não suportado")
 	}
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		return fmt.Errorf("erro ao executar ping: %v", err)
 	}
 
-	err = appendToFile("ping_log.txt", string(output))
-	if err != nil {
-		fmt.Println("Erro ao escrever para o arquivo:", err)
-		return
+	if err := appendToFile("ping_log.txt", string(output)); err != nil {
+		return fmt.Errorf("erro ao escrever para o arquivo: %v", err)
 	}
-	fmt.Println("Resultado salvo no arquivo ping_log.txt")
+	return nil
 }
 
 func appendToFile(filename string, data string) error {
@@ -57,15 +53,31 @@ func main() {
 	host, _ := reader.ReadString('\n')
 	host = strings.TrimSpace(host)
 
+	if host == "" {
+		fmt.Println("Endereço inválido. Por favor, insira um endereço válido.")
+		return
+	}
+
 	fmt.Print("Insira o número de vezes que deseja que o endereço seja pingado: ")
 	countStr, _ := reader.ReadString('\n')
 	countStr = strings.TrimSpace(countStr)
 	count, err := strconv.Atoi(countStr)
 	if err != nil {
-		fmt.Println("Número de tentativas inválido.")
+		fmt.Println("Número de tentativas inválido. Por favor, insira um número inteiro válido.")
 		return
 	}
 
-	pingHost(host, count)
+	if count <= 0 {
+		fmt.Println("O número de tentativas deve ser maior que zero. Por favor, insira um número positivo.")
+		return
+	}
+
+	fmt.Printf("ping %s %d vezes, não feche o terminal...\n", host, count)
+	if err := pingHost(host, count); err != nil {
+		fmt.Println("Erro:", err)
+		return
+	}
+
+	fmt.Println("Ping concluído. Resultado salvo no arquivo ping_log.txt")
 }
 
